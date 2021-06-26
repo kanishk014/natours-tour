@@ -66,4 +66,8 @@ module.exports = class Email {
       'Your password Reset Token (valid for only 10 minutes)'
     );
   }
+
+  async sendActivationEmail() {
+    await this.send('activationEmail', 'Please Activate your email!');
+  }
 };

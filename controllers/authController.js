@@ -36,18 +36,41 @@ const createSendToken = (user, statusCode, req, res) => {
 };
 
 exports.signup = catchAsync(async (req, res, next) => {
-  const newUser = await User.create({
+  const currentUser = {
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
+  };
+
+  const activationUrl = `${req.protocol}://${req.get('host')}/?name=${
+    req.body.name
+  }&email=${req.body.email}&password=${req.body.password}&passwordConfirm=${
+    req.body.passwordConfirm
+  }`;
+
+  await new Email(currentUser, activationUrl).sendActivationEmail();
+});
+
+exports.createSignupUser = catchAsync(async (req, res, next) => {
+  const { name, email, password, passwordConfirm } = req.query;
+
+  if (!name && !email && !password && !passwordConfirm) {
+    return next();
+  }
+
+  const newUser = await User.create({
+    name,
+    email,
+    password,
+    passwordConfirm,
   });
 
   const url = `${req.protocol}://${req.get('host')}/me`;
   // console.log(url);
   await new Email(newUser, url).sendWelcome();
 
-  createSendToken(newUser, 201, req, res);
+  res.redirect(`${req.protocol}://${req.get('host')}/login`);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
