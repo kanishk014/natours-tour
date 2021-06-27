@@ -77,7 +77,7 @@ exports.confirmSignup = catchAsync(async (req, res, next) => {
   user.activationToken = undefined;
   await user.save({ validateBeforeSave: false });
 
-  const url = `${req.protocol}://${req.get('host')}/me`;
+  const url = `${req.protocol}://${req.get('host')}/login`;
 
   await new Email(user, url).sendWelcome();
 
