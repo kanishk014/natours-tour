@@ -53,6 +53,12 @@ exports.getAccount = (req, res) => {
   });
 };
 
+exports.getSuccessPage = (req, res) => {
+  res.status(200).render('success', {
+    title: 'Please confirm your email!',
+  });
+};
+
 exports.getMyTours = catchAsync(async (req, res, next) => {
   // 1. Find all bookings
   const bookings = await Booking.find({ user: req.user.id });

@@ -12,7 +12,7 @@ const signToken = (id) => {
   });
 };
 
-const createSendToken = (user, statusCode, req, res) => {
+const createSendToken = async (user, statusCode, req, res) => {
   const token = signToken(user._id);
 
   res.cookie('jwt', token, {
@@ -36,40 +36,52 @@ const createSendToken = (user, statusCode, req, res) => {
 };
 
 exports.signup = catchAsync(async (req, res, next) => {
-  const currentUser = {
+  let token = crypto.randomBytes(32).toString('hex');
+  const activationToken = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+
+  const newUser = await User.create({
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
-  };
-
-  const activationUrl = `${req.protocol}://${req.get('host')}/?name=${
-    req.body.name
-  }&email=${req.body.email}&password=${req.body.password}&passwordConfirm=${
-    req.body.passwordConfirm
-  }`;
-
-  await new Email(currentUser, activationUrl).sendActivationEmail();
-});
-
-exports.createSignupUser = catchAsync(async (req, res, next) => {
-  const { name, email, password, passwordConfirm } = req.query;
-
-  if (!name && !email && !password && !passwordConfirm) {
-    return next();
-  }
-
-  const newUser = await User.create({
-    name,
-    email,
-    password,
-    passwordConfirm,
+    activationToken,
   });
 
-  const url = `${req.protocol}://${req.get('host')}/me`;
-  // console.log(url);
-  await new Email(newUser, url).sendWelcome();
+  const url = `${req.protocol}://${req.get('host')}/success/${activationToken}`;
 
+  await new Email(newUser, url).sendActivationEmail();
+
+  res.status(201).json({
+    status: 'success',
+    data: {
+      newUser,
+    },
+  });
+});
+
+exports.confirmSignup = catchAsync(async (req, res, next) => {
+  const user = await User.findOne({
+    activationToken: req.params.activation_token,
+  });
+
+  if (!user) {
+    return next(
+      new AppError('Your activation token is invalid or may have expired.', 401)
+    );
+  }
+
+  user.active = true;
+  user.activationToken = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  const url = `${req.protocol}://${req.get('host')}/me`;
+
+  await new Email(user, url).sendWelcome();
+
+  // createSendToken(user, 201, req, res);
   res.redirect(`${req.protocol}://${req.get('host')}/login`);
 });
 

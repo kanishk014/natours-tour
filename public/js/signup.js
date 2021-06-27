@@ -15,9 +15,9 @@ export const signup = async (name, email, password, passwordConfirm) => {
     });
 
     if (res.data.status === 'success') {
-      showAlert('success', 'Welcome to Kanishk Tours...');
+      showAlert('success', 'Please activate your email!');
       window.setTimeout(() => {
-        location.assign('/');
+        location.assign('/success');
       }, 1000);
     }
   } catch (err) {
